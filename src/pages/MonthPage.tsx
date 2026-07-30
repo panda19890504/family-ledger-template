@@ -15,6 +15,16 @@ import type { LedgerTransaction } from "../types";
 type MonthTab = "expense" | "fixed" | "income" | "allocation";
 type SortOrder = "desc" | "asc";
 
+interface DetailPreview {
+  transaction: LedgerTransaction;
+  categoryName: string;
+  title: string;
+  meta: string;
+  dateLabel: string;
+  amount: number;
+  amountPrefix: "+" | "-";
+}
+
 interface MonthPageProps {
   month: string;
   onMonthChange(month: string): void;
@@ -46,6 +56,7 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
   const [activeTab, setActiveTab] = useState<MonthTab>("expense");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [detailPreview, setDetailPreview] = useState<DetailPreview | null>(null);
   const rows = useMemo(() => transactionsForMonth(transactions, month), [month, transactions]);
   const allocations = useMemo(() => allocationsForMonth(transactions, month), [month, transactions]);
   const fixedRows = useMemo(() => monthlyFixedCashCommitmentsForMonth(transactions, month), [month, transactions]);
@@ -94,6 +105,21 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
     await deleteTransaction(transaction.id);
   }
 
+  function previewTransaction(transaction: LedgerTransaction, amount = transaction.amount, dateLabel = formatDate(transaction.date)) {
+    const category = categoryById.get(transaction.categoryId);
+    const title = cleanMigrationNote(transaction.detail) || category?.name || "未分类";
+    const categoryName = category?.name || "未分类";
+    setDetailPreview({
+      transaction,
+      categoryName,
+      title,
+      meta: `${categoryName}${billedNote(transaction)} ${transaction.allocationMonths ? `· 均摊 ${transaction.allocationMonths} 个月` : ""}`.trim(),
+      dateLabel,
+      amount,
+      amountPrefix: transaction.direction === "income" ? "+" : "-",
+    });
+  }
+
   return (
     <div className="page">
       <header className="page-header split-header">
@@ -119,6 +145,60 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
             onCancel={() => setEditing(null)}
           />
         </section>
+      )}
+
+      {detailPreview && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setDetailPreview(null)}>
+          <section
+            className="surface transaction-detail-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="section-title">
+              <div>
+                <p className="eyebrow">{detailPreview.dateLabel}</p>
+                <h2 id="transaction-detail-title">{detailPreview.title}</h2>
+              </div>
+              <button type="button" className="text-button" onClick={() => setDetailPreview(null)}>关闭</button>
+            </div>
+            <dl className="transaction-detail-list">
+              <div>
+                <dt>类别</dt>
+                <dd>{detailPreview.categoryName}</dd>
+              </div>
+              <div>
+                <dt>完整明细</dt>
+                <dd>{detailPreview.title}</dd>
+              </div>
+              {detailPreview.meta !== detailPreview.categoryName && (
+                <div>
+                  <dt>备注</dt>
+                  <dd>{detailPreview.meta}</dd>
+                </div>
+              )}
+              <div>
+                <dt>金额</dt>
+                <dd className={detailPreview.amountPrefix === "+" ? "income-text" : "expense-text"}>
+                  {detailPreview.amountPrefix}{formatMoney(detailPreview.amount, detailPreview.transaction.currency)}
+                </dd>
+              </div>
+            </dl>
+            <div className="button-row">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setEditing(detailPreview.transaction);
+                  setDetailPreview(null);
+                }}
+              >
+                编辑这笔
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       <div className="month-tabs" role="tablist" aria-label="月度明细分类">
@@ -214,14 +294,18 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
               <article className="transaction-row allocation-row" key={`${transaction.id}-${month}`}>
                 <time dateTime={monthEndDate}>月末均摊</time>
                 <span className="category-dot" style={{ background: category?.color }} />
-                <div className="transaction-main">
+                <button
+                  type="button"
+                  className="transaction-main transaction-main-button"
+                  onClick={() => previewTransaction(transaction, amount, "月末均摊")}
+                >
                   <strong>{cleanMigrationNote(transaction.detail) || category?.name || "未分类"}</strong>
                   <span>
                     {category?.name} · 原始 {formatMoney(transaction.amount, transaction.currency)}
                     {` · 支付 ${formatDate(transaction.date)}`}
                     {transaction.allocationMonths ? ` / ${transaction.allocationMonths} 个月` : ""}
                   </span>
-                </div>
+                </button>
                 <strong className="money expense-text">-{formatMoney(amount, transaction.currency)}</strong>
                 <div className="row-actions">
                   <button onClick={() => setEditing(transaction)}>编辑</button>
@@ -237,10 +321,14 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
               <article className="transaction-row" key={transaction.id}>
                 <time dateTime={transaction.date}>{formatDate(transaction.date)}</time>
                 <span className="category-dot" style={{ background: category?.color }} />
-                <div className="transaction-main">
+                <button
+                  type="button"
+                  className="transaction-main transaction-main-button"
+                  onClick={() => previewTransaction(transaction)}
+                >
                   <strong>{transaction.detail || category?.name || "未分类"}</strong>
                   <span>{category?.name}{billedNote(transaction)} {transaction.allocationMonths ? `· 均摊 ${transaction.allocationMonths} 个月` : ""}</span>
-                </div>
+                </button>
                 <strong className={transaction.direction === "income" ? "money income-text" : "money expense-text"}>
                   {transaction.direction === "income" ? "+" : "-"}{formatMoney(transaction.amount, transaction.currency)}
                 </strong>

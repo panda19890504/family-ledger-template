@@ -187,6 +187,11 @@ input:focus, select:focus { border-color: var(--green-600); box-shadow: 0 0 0 3p
 .transaction-row time { color: var(--muted); font-size: .78rem; }
 .category-dot { width: 9px; height: 9px; border-radius: 50%; }
 .transaction-main { min-width: 0; display: grid; }
+.transaction-main-button {
+  border: 0; background: transparent; color: inherit; padding: 0; text-align: left;
+  font: inherit; cursor: pointer; -webkit-tap-highlight-color: rgba(42, 122, 100, .08);
+}
+.transaction-main-button:focus-visible { outline: 2px solid rgba(42, 122, 100, .28); outline-offset: 4px; border-radius: 8px; }
 .transaction-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transaction-main span { color: var(--muted); font-size: .75rem; margin-top: 3px; }
 .money { white-space: nowrap; }
@@ -249,6 +254,12 @@ input:focus, select:focus { border-color: var(--green-600); box-shadow: 0 0 0 3p
   padding: 24px; background: rgba(16,46,42,.34); backdrop-filter: blur(5px);
 }
 .definition-modal { width: min(620px, 100%); max-height: min(760px, 88vh); overflow: auto; padding: 26px; }
+.transaction-detail-modal { width: min(520px, 100%); max-height: min(640px, 88vh); overflow: auto; padding: 24px; }
+.transaction-detail-modal h2 { overflow-wrap: anywhere; }
+.transaction-detail-list { display: grid; gap: 12px; margin: 0 0 18px; }
+.transaction-detail-list div { padding-top: 12px; border-top: 1px solid var(--line); }
+.transaction-detail-list dt { color: var(--muted); font-size: .76rem; font-weight: 700; }
+.transaction-detail-list dd { margin: 5px 0 0; color: var(--green-950); line-height: 1.6; overflow-wrap: anywhere; font-weight: 700; }
 .definition-list { display: grid; gap: 14px; margin: 0; }
 .definition-list div { padding-top: 14px; border-top: 1px solid var(--line); }
 .definition-list dt { color: var(--green-950); font-weight: 800; }
@@ -351,7 +362,7 @@ input:focus, select:focus { border-color: var(--green-600); box-shadow: 0 0 0 3p
   .bottom-nav button.active { color: var(--green-800); font-weight: 700; }
   .demo-banner { text-align: center; flex-direction: column; }
   .modal-backdrop { align-items: end; padding: 14px; }
-  .definition-modal { max-height: 82vh; padding: 20px; border-radius: 18px; }
+  .definition-modal, .transaction-detail-modal { max-height: 82vh; padding: 20px; border-radius: 18px; }
   .toast { bottom: 82px; }
   .amount-field input { font-size: 2.7rem; }
 }

@@ -511,7 +511,7 @@ export function SettingsPage() {
           <div className="section-title">
             <div>
               <h2>更新日志</h2>
-              <span>最近更新：2026/07/04</span>
+              <span>最近更新：2026/07/30</span>
             </div>
             <button type="button" className="ghost-button" onClick={() => setShowChangelog((value) => !value)}>
               {showChangelog ? "收起" : "展开"}
@@ -520,7 +520,13 @@ export function SettingsPage() {
           {showChangelog && (
             <>
               <div className="changelog-entry">
-                <p className="eyebrow">更新</p>
+                <p className="eyebrow">2026/07/30 · 更新</p>
+                <ul>
+                  <li>月度明细里点击商家/明细文字，可以打开完整记录弹窗，查看被省略的长明细。</li>
+                </ul>
+              </div>
+              <div className="changelog-entry">
+                <p className="eyebrow">2026/07/04 · 更新</p>
                 <ul>
                   <li>月末均摊明细显示原始支付日期，并可直接编辑或删除源记录。</li>
                   <li>类别管理改为“添加新类别”和“编辑旧类别”两块；旧类别通过下拉选择后再编辑。</li>
@@ -529,7 +535,7 @@ export function SettingsPage() {
                 </ul>
               </div>
               <div className="changelog-entry">
-                <p className="eyebrow">修复</p>
+                <p className="eyebrow">2026/07/04 · 修复</p>
                 <ul>
                   <li>切换支出/收入或记账类型时，不再自动跳到金额输入框。</li>
                   <li>补充均摊支出回归测试，避免实际付款和均摊金额在账本月支出里重复计算。</li>

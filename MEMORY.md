@@ -1,7 +1,7 @@
 # family-ledger-template Memory
 
 > Initialized: 2026-06-30
-> Last reviewed: 2026-07-01
+> Last reviewed: 2026-07-30
 
 ## Project Identity
 
@@ -16,6 +16,7 @@ Record decisions that constrain future work. Include the date, decision, why it 
 | Date | Decision | Why | User impact |
 | --- | --- | --- | --- |
 | 2026-06-30 | README should be written as a Chinese first-use guide for friends, covering GitHub fork, Supabase, Gmail OTP, Cloudflare, iPhone install, and future updates. | The public repo is meant to be reused by non-technical friends, so setup clarity matters more than developer brevity. | New users can follow one document from account setup to daily use and updates. |
+| 2026-07-30 | Month detail rows keep compact ellipsis in the list, but tapping the merchant/detail area opens a full transaction detail modal. | Mobile lists need to stay scannable, while long merchant/detail text must remain recoverable without editing the transaction. | Template users can read complete long notes on iPhone without widening rows or losing list density. |
 
 ## Known Pitfalls
 
