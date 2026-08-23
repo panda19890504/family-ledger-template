@@ -105,6 +105,11 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
     await deleteTransaction(transaction.id);
   }
 
+  function startEdit(transaction: LedgerTransaction) {
+    setDetailPreview(null);
+    setEditing(transaction);
+  }
+
   function previewTransaction(transaction: LedgerTransaction, amount = transaction.amount, dateLabel = formatDate(transaction.date)) {
     const category = categoryById.get(transaction.categoryId);
     const title = cleanMigrationNote(transaction.detail) || category?.name || "未分类";
@@ -132,19 +137,30 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
       </header>
 
       {editing && (
-        <section className="surface edit-surface">
-          <div className="section-title">
-            <h2>修改记录</h2>
-            <button className="text-button" onClick={() => setEditing(null)}>关闭</button>
-          </div>
-          <TransactionForm
-            initial={editing}
-            allocation={Boolean(editing.allocationStartMonth && editing.allocationMonths)}
-            fixed={isMonthlyFixedCashCommitment(editing)}
-            onSaved={() => setEditing(null)}
-            onCancel={() => setEditing(null)}
-          />
-        </section>
+        <div className="modal-backdrop" role="presentation" onClick={() => setEditing(null)}>
+          <section
+            className="surface transaction-edit-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-edit-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="section-title">
+              <div>
+                <p className="eyebrow">编辑记录</p>
+                <h2 id="transaction-edit-title">{cleanMigrationNote(editing.detail) || categoryById.get(editing.categoryId)?.name || "这笔记录"}</h2>
+              </div>
+              <button type="button" className="text-button" onClick={() => setEditing(null)}>关闭</button>
+            </div>
+            <TransactionForm
+              initial={editing}
+              allocation={Boolean(editing.allocationStartMonth && editing.allocationMonths)}
+              fixed={isMonthlyFixedCashCommitment(editing)}
+              onSaved={() => setEditing(null)}
+              onCancel={() => setEditing(null)}
+            />
+          </section>
+        </div>
       )}
 
       {detailPreview && (
@@ -189,10 +205,7 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => {
-                  setEditing(detailPreview.transaction);
-                  setDetailPreview(null);
-                }}
+                onClick={() => startEdit(detailPreview.transaction)}
               >
                 编辑这笔
               </button>
@@ -308,7 +321,7 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
                 </button>
                 <strong className="money expense-text">-{formatMoney(amount, transaction.currency)}</strong>
                 <div className="row-actions">
-                  <button onClick={() => setEditing(transaction)}>编辑</button>
+                  <button onClick={() => startEdit(transaction)}>编辑</button>
                   <button onClick={() => void remove(transaction)}>删除</button>
                 </div>
               </article>
@@ -333,7 +346,7 @@ export function MonthPage({ month, onMonthChange }: MonthPageProps) {
                   {transaction.direction === "income" ? "+" : "-"}{formatMoney(transaction.amount, transaction.currency)}
                 </strong>
                 <div className="row-actions">
-                  <button onClick={() => setEditing(transaction)}>编辑</button>
+                  <button onClick={() => startEdit(transaction)}>编辑</button>
                   <button onClick={() => void remove(transaction)}>删除</button>
                 </div>
               </article>

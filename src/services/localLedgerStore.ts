@@ -129,6 +129,26 @@ export class LocalLedgerStore implements LedgerStore {
     return updated;
   }
 
+  async updateTransactionDetails(oldDetail: string, newDetail: string): Promise<number> {
+    const from = oldDetail.trim();
+    const to = newDetail.trim();
+    if (!from || !to) throw new Error("明细不能为空");
+    const snapshot = this.read();
+    let updatedCount = 0;
+    const now = new Date().toISOString();
+    snapshot.transactions = snapshot.transactions.map((transaction) => {
+      if (transaction.detail.trim() !== from) return transaction;
+      updatedCount += 1;
+      return {
+        ...transaction,
+        detail: to,
+        updatedAt: now,
+      };
+    });
+    if (updatedCount > 0) this.write(snapshot);
+    return updatedCount;
+  }
+
   async deleteTransaction(id: string): Promise<void> {
     const snapshot = this.read();
     snapshot.transactions = snapshot.transactions.filter((transaction) => transaction.id !== id);

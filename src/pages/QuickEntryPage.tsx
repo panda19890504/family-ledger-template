@@ -23,7 +23,7 @@ export function QuickEntryPage() {
   const [direction, setDirection] = useState<EntryDirection>("expense");
   const [expenseMode, setExpenseMode] = useState<ExpenseMode>("normal");
   const copy = direction === "income"
-    ? { title: "记录收入", subtitle: "工资、其他收入和代购收入。" }
+    ? { title: "记录收入", subtitle: "工资、其他收入和转售收入。" }
     : expenseCopy[expenseMode];
 
   return (

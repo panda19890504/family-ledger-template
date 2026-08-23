@@ -1,7 +1,7 @@
 # family-ledger-template Memory
 
 > Initialized: 2026-06-30
-> Last reviewed: 2026-07-30
+> Last reviewed: 2026-08-23
 
 ## Project Identity
 
@@ -17,6 +17,8 @@ Record decisions that constrain future work. Include the date, decision, why it 
 | --- | --- | --- | --- |
 | 2026-06-30 | README should be written as a Chinese first-use guide for friends, covering GitHub fork, Supabase, Gmail OTP, Cloudflare, iPhone install, and future updates. | The public repo is meant to be reused by non-technical friends, so setup clarity matters more than developer brevity. | New users can follow one document from account setup to daily use and updates. |
 | 2026-07-30 | Month detail rows keep compact ellipsis in the list, but tapping the merchant/detail area opens a full transaction detail modal. | Mobile lists need to stay scannable, while long merchant/detail text must remain recoverable without editing the transaction. | Template users can read complete long notes on iPhone without widening rows or losing list density. |
+| 2026-08-23 | Sync the reusable editing and analysis improvements from private main: modal editing, history-based detail suggestions, safe fixed-expense update scope, year-to-date summaries, comparison charts, and composition charts. | These features improve common bookkeeping and review workflows without depending on private data or credentials. | Template users get faster entry, clearer editing feedback, fewer duplicate fixed expenses, and richer annual analysis. |
+| 2026-08-23 | Keep the generic expense category `其他` inside public-template `家庭日常` analysis and use `转售` for resale wording. | The private household's exceptional-spending meaning for `其他` and its personal category labels are not universal. | Friends' uncategorized daily expenses remain visible in household totals, and public wording stays reusable. |
 
 ## Known Pitfalls
 

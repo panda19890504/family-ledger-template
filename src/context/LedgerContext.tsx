@@ -57,6 +57,7 @@ interface LedgerContextValue {
   addTransaction(input: TransactionInput): Promise<void>;
   importTransactions(inputs: TransactionInput[]): Promise<number>;
   updateTransaction(id: string, input: TransactionInput): Promise<void>;
+  updateTransactionDetails(oldDetail: string, newDetail: string): Promise<number>;
   deleteTransaction(id: string): Promise<void>;
   addCategory(input: Pick<Category, "name" | "direction" | "color">): Promise<void>;
   updateCategory(id: string, input: Pick<Category, "name" | "color" | "active">): Promise<void>;
@@ -302,6 +303,16 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
         const updated = await run(() => store.updateTransaction(id, input));
         setTransactions((current) => current.map((item) => (item.id === id ? updated : item)));
         setMessage("修改已保存");
+      },
+      updateTransactionDetails: async (oldDetail, newDetail) => {
+        if (!store) return 0;
+        const updatedCount = await run(() => store.updateTransactionDetails(oldDetail, newDetail));
+        if (updatedCount > 0) {
+          const snapshot = await store.load();
+          setTransactions(snapshot.transactions);
+        }
+        setMessage(updatedCount > 0 ? `已修正 ${updatedCount} 笔明细` : "没有找到需要修正的明细");
+        return updatedCount;
       },
       deleteTransaction: async (id) => {
         if (!store) return;

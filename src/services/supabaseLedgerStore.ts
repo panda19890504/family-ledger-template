@@ -327,6 +327,27 @@ export class SupabaseLedgerStore implements LedgerStore {
     return mapTransaction(data);
   }
 
+  async updateTransactionDetails(oldDetail: string, newDetail: string): Promise<number> {
+    const from = oldDetail.trim();
+    const to = newDetail.trim();
+    if (!from || !to) throw new Error("明细不能为空");
+    const client = requireClient();
+    const { count, error: countError } = await client
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("household_id", this.householdId)
+      .eq("detail", from);
+    if (countError) throw countError;
+    if (!count) return 0;
+    const { error } = await client
+      .from("transactions")
+      .update({ detail: to })
+      .eq("household_id", this.householdId)
+      .eq("detail", from);
+    if (error) throw error;
+    return count;
+  }
+
   async importTransactions(inputs: TransactionInput[]): Promise<number> {
     const client = requireClient();
     const migrationIds = inputs

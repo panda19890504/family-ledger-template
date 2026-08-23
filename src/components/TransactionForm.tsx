@@ -1,9 +1,11 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { currentMonth, todayIso } from "../lib/date";
+import { isMonthlyFixedCashCommitment } from "../lib/analytics";
 import { findRate } from "../lib/money";
 import { cleanDecimalInput, parseDecimalInput } from "../lib/numberInput";
 import { useLedger } from "../context/LedgerContext";
 import { DateSelectField, MonthSelectField } from "./DateFields";
+import { buildDetailSuggestions, matchingDetailSuggestions } from "../lib/detailSuggestions";
 import type {
   BusinessType,
   Currency,
@@ -11,6 +13,8 @@ import type {
   LedgerTransaction,
   TransactionInput,
 } from "../types";
+
+type FixedEditScope = "current" | "future";
 
 interface TransactionFormProps {
   allocation?: boolean;
@@ -71,7 +75,7 @@ export function TransactionForm({
   onSaved,
   onCancel,
 }: TransactionFormProps) {
-  const { categories, exchangeRates, addTransaction, updateTransaction, busy } = useLedger();
+  const { categories, transactions, exchangeRates, addTransaction, updateTransaction, busy } = useLedger();
   const allowsFixedExpense = !initial || initial.direction !== "income";
   const initialFixedExpense = forcedDirection === "income"
     ? false
@@ -96,7 +100,7 @@ export function TransactionForm({
   );
   const [fixedEndMonth, setFixedEndMonth] = useState(lastMonthOfYear(initial?.date ?? todayIso()));
   const [fixedDay, setFixedDay] = useState(String(dayFromDate(initial?.date ?? todayIso())));
-  const [applyFutureFixed, setApplyFutureFixed] = useState(false);
+  const [fixedEditScope, setFixedEditScope] = useState<FixedEditScope>("current");
   const [error, setError] = useState<string | null>(null);
 
   const availableCategories = useMemo(
@@ -117,12 +121,29 @@ export function TransactionForm({
     : null;
   const displayedAmount = computedCnyAmount === null ? amount : computedCnyAmount.toFixed(2);
   const missingRate = currency === "CNY" && !foreignPriced && findRate(exchangeRates, currency, date) === null;
-  const futureFixedStartMonth = addMonths(monthFromDate(date), 1);
   const fixedMonths = fixedEntry && !initial ? monthsBetween(monthFromDate(date), fixedEndMonth) : [];
-  const futureFixedMonths = fixedEntry && initial && applyFutureFixed
-    ? monthsBetween(futureFixedStartMonth, fixedEndMonth)
-    : [];
   const directionLocked = Boolean(forcedDirection || allocation);
+  const futureFixedTargets = useMemo(() => {
+    if (!initial || !fixedEntry || fixedEditScope !== "future") return [];
+    const initialMonth = monthFromDate(initial.date);
+    const initialDetail = initial.detail.trim();
+    return transactions
+      .filter((transaction) =>
+        transaction.id !== initial.id &&
+        monthFromDate(transaction.date) >= initialMonth &&
+        transaction.direction === initial.direction &&
+        transaction.categoryId === initial.categoryId &&
+        transaction.currency === initial.currency &&
+        transaction.detail.trim() === initialDetail &&
+        isMonthlyFixedCashCommitment(transaction),
+      )
+      .sort((left, right) => left.date.localeCompare(right.date) || left.createdAt.localeCompare(right.createdAt));
+  }, [fixedEditScope, fixedEntry, initial, transactions]);
+  const detailSuggestions = useMemo(
+    () => buildDetailSuggestions(transactions, { categoryId: selectedCategoryId, direction }),
+    [direction, selectedCategoryId, transactions],
+  );
+  const visibleDetailSuggestions = matchingDetailSuggestions(detailSuggestions, detail);
 
   function changeDate(nextDate: string) {
     setDate(nextDate);
@@ -173,13 +194,7 @@ export function TransactionForm({
     if (usesSpecialRate && (!Number.isFinite(rateNumeric) || rateNumeric <= 0)) return setError("请输入大于 0 的当笔汇率");
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) return setError("请输入大于 0 的金额");
     if (fixedEntry && !initial && fixedMonths.length === 0) return setError("结束月份不能早于开始月份");
-    if (fixedEntry && initial && applyFutureFixed && futureFixedMonths.length === 0) {
-      return setError("结束月份需要晚于当前月份");
-    }
     if (fixedEntry && !initial && (!Number(fixedDay) || Number(fixedDay) < 1 || Number(fixedDay) > 31)) {
-      return setError("扣款日需要在 1 到 31 之间");
-    }
-    if (fixedEntry && initial && applyFutureFixed && (!Number(fixedDay) || Number(fixedDay) < 1 || Number(fixedDay) > 31)) {
       return setError("扣款日需要在 1 到 31 之间");
     }
 
@@ -202,10 +217,10 @@ export function TransactionForm({
     try {
       if (initial) {
         await updateTransaction(initial.id, input);
-        for (const month of futureFixedMonths) {
-          await addTransaction({
+        for (const transaction of futureFixedTargets) {
+          await updateTransaction(transaction.id, {
             ...input,
-            date: dateInMonth(month, Number(fixedDay)),
+            date: transaction.date,
           });
         }
       }
@@ -302,34 +317,31 @@ export function TransactionForm({
         </div>
       )}
       {fixedEntry && initial && (
-        <div className="allocation-panel">
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={applyFutureFixed}
-              onChange={(event) => setApplyFutureFixed(event.target.checked)}
-            />
-            同步生成之后月份
-          </label>
-          {applyFutureFixed ? (
-            <div className="form-grid two-columns">
-              <MonthSelectField label="自动生成到" value={fixedEndMonth} onChange={setFixedEndMonth} />
-              <label>
-                每月扣款日
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={fixedDay}
-                  onChange={(event) => setFixedDay(event.target.value)}
-                  required
-                />
-              </label>
-              <p className="submit-hint">保存后会额外创建 {futureFixedMonths.length} 笔后续固定支出。</p>
+        <div className="fixed-edit-panel">
+          <fieldset className="segmented-field fixed-scope-field">
+            <legend>修改范围</legend>
+            <div className="segmented-control fixed-scope-control">
+              <button
+                type="button"
+                className={fixedEditScope === "current" ? "active" : ""}
+                onClick={() => setFixedEditScope("current")}
+              >
+                只改本月
+              </button>
+              <button
+                type="button"
+                className={fixedEditScope === "future" ? "active expense" : ""}
+                onClick={() => setFixedEditScope("future")}
+              >
+                本月起同步后续
+              </button>
             </div>
-          ) : (
-            <p>这里只修改当前月份这一笔；之后月份金额变化时，去对应月份单独编辑。</p>
-          )}
+          </fieldset>
+          <p>
+            {fixedEditScope === "future"
+              ? `会修改当前这一笔，并同步 ${futureFixedTargets.length} 笔已存在的后续固定支出；不会新增记录。`
+              : "只修改当前月份这一笔，后续月份保持不变。"}
+          </p>
         </div>
       )}
 
@@ -447,6 +459,19 @@ export function TransactionForm({
           maxLength={160}
         />
       </label>
+      {visibleDetailSuggestions.length > 0 && (
+        <div className="detail-suggestions" aria-label="常用明细建议">
+          {visibleDetailSuggestions.map((suggestion) => (
+            <button
+              key={suggestion.value}
+              type="button"
+              onClick={() => setDetail(suggestion.value)}
+            >
+              {suggestion.value}
+            </button>
+          ))}
+        </div>
+      )}
 
       {allocation && (
         <div className="allocation-panel">

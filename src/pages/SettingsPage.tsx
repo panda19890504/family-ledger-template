@@ -1,6 +1,12 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useLedger } from "../context/LedgerContext";
 import { todayIso } from "../lib/date";
+import {
+  buildDetailSuggestions,
+  isDetailSuggestionHidden,
+  normalizeDetailForSuggestion,
+  setDetailSuggestionHidden,
+} from "../lib/detailSuggestions";
 import { cleanDecimalInput, parseDecimalInput } from "../lib/numberInput";
 import type { BusinessType, Category, Currency, TransactionInput } from "../types";
 
@@ -58,6 +64,7 @@ export function SettingsPage() {
     deleteCategory,
     addExchangeRate,
     importTransactions,
+    updateTransactionDetails,
     mode,
     busy,
     households,
@@ -81,6 +88,9 @@ export function SettingsPage() {
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [showChangelog, setShowChangelog] = useState(false);
+  const [detailSuggestionVersion, setDetailSuggestionVersion] = useState(0);
+  const [selectedDetailSuggestion, setSelectedDetailSuggestion] = useState("");
+  const [replacementDetail, setReplacementDetail] = useState("");
 
   const currentHousehold = households.find((household) => household.id === householdId);
   const canManageHousehold = mode === "supabase" && currentHousehold?.role === "owner";
@@ -99,6 +109,15 @@ export function SettingsPage() {
   }, [transactions]);
   const editingCategory = visibleCategories.find((category) => category.id === editingCategoryId) ?? null;
   const editingCategoryUsage = editingCategory ? categoryUsage.get(editingCategory.id) ?? 0 : 0;
+  const detailSuggestions = useMemo(
+    () => {
+      void detailSuggestionVersion;
+      return buildDetailSuggestions(transactions, { includeHidden: true });
+    },
+    [detailSuggestionVersion, transactions],
+  );
+  const selectedDetail = detailSuggestions.find((suggestion) => suggestion.value === selectedDetailSuggestion) ?? null;
+  const selectedDetailHidden = selectedDetail ? isDetailSuggestionHidden(selectedDetail.value) : false;
 
   async function submitCategory(event: FormEvent) {
     event.preventDefault();
@@ -173,6 +192,24 @@ export function SettingsPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
     await updateHouseholdMemberName(userId, String(form.get("displayName") ?? "").trim());
+  }
+
+  function toggleDetailSuggestionHidden(value: string, hidden: boolean) {
+    setDetailSuggestionHidden(value, hidden);
+    setDetailSuggestionVersion((version) => version + 1);
+  }
+
+  async function submitDetailCorrection(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedDetail) return;
+    const replacement = normalizeDetailForSuggestion(replacementDetail);
+    if (!replacement || replacement === selectedDetail.value) return;
+    if (!window.confirm(`把所有“${selectedDetail.value}”改成“${replacement}”？`)) return;
+    await updateTransactionDetails(selectedDetail.value, replacement);
+    setDetailSuggestionHidden(selectedDetail.value, false);
+    setSelectedDetailSuggestion(replacement);
+    setReplacementDetail("");
+    setDetailSuggestionVersion((version) => version + 1);
   }
 
   async function deleteEmptySelectedHousehold(targetHouseholdId: string, targetName: string) {
@@ -488,6 +525,63 @@ export function SettingsPage() {
           </div>
         </section>
 
+        <section className="surface settings-card">
+          <div className="section-title"><h2>常用明细</h2><span>{detailSuggestions.length} 个词条</span></div>
+          <p>这些词条从历史明细自动生成。隐藏只是不再推荐；改正会批量修改历史记录。</p>
+          {detailSuggestions.length > 0 ? (
+            <div className="detail-manager">
+              <label>
+                选择词条
+                <select
+                  value={selectedDetail?.value ?? ""}
+                  onChange={(event) => {
+                    setSelectedDetailSuggestion(event.target.value);
+                    setReplacementDetail("");
+                  }}
+                >
+                  <option value="">选择要管理的明细</option>
+                  {detailSuggestions.map((suggestion) => (
+                    <option key={suggestion.value} value={suggestion.value}>
+                      {suggestion.value} · {suggestion.count} 笔{isDetailSuggestionHidden(suggestion.value) ? " · 已隐藏" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {selectedDetail ? (
+                <>
+                  <div className="detail-manager-actions">
+                    <span>{selectedDetail.count} 笔记录使用过，上次使用 {selectedDetail.lastUsedAt}</span>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={busy}
+                      onClick={() => toggleDetailSuggestionHidden(selectedDetail.value, !selectedDetailHidden)}
+                    >
+                      {selectedDetailHidden ? "恢复推荐" : "隐藏推荐"}
+                    </button>
+                  </div>
+                  <form className="inline-form detail-correction-form" onSubmit={submitDetailCorrection}>
+                    <input
+                      value={replacementDetail}
+                      onChange={(event) => setReplacementDetail(event.target.value)}
+                      placeholder={`改成，例如 ${selectedDetail.value}`}
+                      aria-label="正确明细"
+                      maxLength={160}
+                      required
+                    />
+                    <button className="secondary-button" disabled={busy}>批量改正</button>
+                  </form>
+                </>
+              ) : (
+                <p className="muted">选择一个常用明细后，可以隐藏错误推荐，或把错词批量改成正确词。</p>
+              )}
+            </div>
+          ) : (
+            <p className="muted">有历史明细后，这里会自动出现常用词条。</p>
+          )}
+        </section>
+
         <section className="surface settings-card backup-card">
           <div className="section-title"><h2>带走自己的数据</h2><span>{transactions.length} 笔记录</span></div>
           <p>CSV 用于 Excel 查看；JSON 是包含设置与汇率的完整备份。</p>
@@ -511,7 +605,7 @@ export function SettingsPage() {
           <div className="section-title">
             <div>
               <h2>更新日志</h2>
-              <span>最近更新：2026/07/30</span>
+              <span>最近更新：2026/08/23</span>
             </div>
             <button type="button" className="ghost-button" onClick={() => setShowChangelog((value) => !value)}>
               {showChangelog ? "收起" : "展开"}
@@ -520,22 +614,40 @@ export function SettingsPage() {
           {showChangelog && (
             <>
               <div className="changelog-entry">
-                <p className="eyebrow">2026/07/30 · 更新</p>
+                <p className="eyebrow">2026/08/23</p>
+                <h3>更新</h3>
+                <ul>
+                  <li>分析页新增年度累计、去年同期对比、年度收入构成图和月份对比图。</li>
+                  <li>分析页年度构成区新增年度支出环形图，并使用更容易区分的图表配色。</li>
+                  <li>年度构成区改为两张摘要卡片，长尾分类合并为“其余分类”，减少空白和列表拥挤。</li>
+                  <li>年度构成里的“其余分类”支持悬停或点击查看所包含的分类和金额。</li>
+                  <li>记一笔明细会按历史记录联想常用词，设置里可以隐藏错误推荐或批量改正常用明细。</li>
+                </ul>
+                <h3>修复</h3>
+                <ul>
+                  <li>月份对比里 1 月的“较上月支出”改为对比上一年 12 月，不再显示为持平。</li>
+                  <li>月份对比柱状图改为贴近 0 轴的一侧保持平直，远离 0 轴的一侧保留圆角。</li>
+                  <li>固定支出编辑改为明确选择“只改本月”或“本月起同步后续”；同步后续只修改已存在月份，不再额外新增重复记录。</li>
+                  <li>月度明细里编辑历史记录时改为弹窗，不再让用户点完后还停在列表底部误以为没有反应。</li>
+                </ul>
+              </div>
+              <div className="changelog-entry">
+                <p className="eyebrow">2026/07/30</p>
+                <h3>更新</h3>
                 <ul>
                   <li>月度明细里点击商家/明细文字，可以打开完整记录弹窗，查看被省略的长明细。</li>
                 </ul>
               </div>
               <div className="changelog-entry">
-                <p className="eyebrow">2026/07/04 · 更新</p>
+                <p className="eyebrow">2026/07/04</p>
+                <h3>更新</h3>
                 <ul>
                   <li>月末均摊明细显示原始支付日期，并可直接编辑或删除源记录。</li>
                   <li>类别管理改为“添加新类别”和“编辑旧类别”两块；旧类别通过下拉选择后再编辑。</li>
                   <li>记一笔金额模式里的“外币标价”改名为“特殊汇率”。</li>
                   <li>分析页“支出去向”改为按月支出（含均摊）展示分类金额。</li>
                 </ul>
-              </div>
-              <div className="changelog-entry">
-                <p className="eyebrow">2026/07/04 · 修复</p>
+                <h3>修复</h3>
                 <ul>
                   <li>切换支出/收入或记账类型时，不再自动跳到金额输入框。</li>
                   <li>补充均摊支出回归测试，避免实际付款和均摊金额在账本月支出里重复计算。</li>

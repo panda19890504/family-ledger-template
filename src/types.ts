@@ -118,6 +118,7 @@ export interface LedgerStore {
   addTransaction(input: TransactionInput): Promise<LedgerTransaction>;
   importTransactions(inputs: TransactionInput[]): Promise<number>;
   updateTransaction(id: string, input: TransactionInput): Promise<LedgerTransaction>;
+  updateTransactionDetails(oldDetail: string, newDetail: string): Promise<number>;
   deleteTransaction(id: string): Promise<void>;
   addCategory(input: Pick<Category, "name" | "direction" | "color">): Promise<Category>;
   updateCategory(id: string, input: CategoryUpdateInput): Promise<Category>;

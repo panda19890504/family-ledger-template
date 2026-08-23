@@ -15,6 +15,14 @@ export function isHouseholdCashFlow(transaction: LedgerTransaction): boolean {
   );
 }
 
+export function transactionsForAnalysisScope(
+  transactions: LedgerTransaction[],
+  scope: AnalysisScope,
+): LedgerTransaction[] {
+  if (scope === "all_cash") return transactions;
+  return transactions.filter(isHouseholdCashFlow);
+}
+
 export function latestConversionRates(rates: ExchangeRate[]): ConversionRates {
   const latest = new Map<Exclude<Currency, "EUR">, ExchangeRate>();
   for (const rate of rates) {
@@ -209,6 +217,63 @@ export function categoryExpenseData(
     }
     const value = allocatedAmountForMonth(transaction, month, analysisCurrency, conversionRates);
     if (value > 0) totals.set(transaction.categoryId, (totals.get(transaction.categoryId) ?? 0) + value);
+  }
+  return categories
+    .map((category) => ({
+      name: category.name,
+      value: totals.get(category.id) ?? 0,
+      color: category.color,
+    }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+}
+
+export function categoryExpenseDataForMonths(
+  transactions: LedgerTransaction[],
+  categories: Category[],
+  months: string[],
+  analysisCurrency: AnalysisCurrency = "EUR",
+  analysisScope: AnalysisScope = "household",
+  conversionRates: ConversionRates = {},
+): Array<{ name: string; value: number; color: string }> {
+  const totals = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (transaction.direction !== "expense" || !isIncludedInAnalysis(transaction, analysisScope)) {
+      continue;
+    }
+    const value = months.reduce(
+      (sum, month) => sum + allocatedAmountForMonth(transaction, month, analysisCurrency, conversionRates),
+      0,
+    );
+    if (value > 0) totals.set(transaction.categoryId, (totals.get(transaction.categoryId) ?? 0) + value);
+  }
+  return categories
+    .map((category) => ({
+      name: category.name,
+      value: totals.get(category.id) ?? 0,
+      color: category.color,
+    }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+}
+
+export function categoryIncomeData(
+  transactions: LedgerTransaction[],
+  categories: Category[],
+  months: string[],
+  analysisCurrency: AnalysisCurrency = "EUR",
+  analysisScope: AnalysisScope = "household",
+  conversionRates: ConversionRates = {},
+): Array<{ name: string; value: number; color: string }> {
+  const monthSet = new Set(months);
+  const totals = new Map<string, number>();
+  for (const transaction of transactions) {
+    if (transaction.direction !== "income" || !isIncludedInAnalysis(transaction, analysisScope)) {
+      continue;
+    }
+    if (transaction.isCashTransaction === false || !monthSet.has(transaction.date.slice(0, 7))) continue;
+    const value = valueForCurrency(transaction, analysisCurrency, conversionRates);
+    if (value !== null && value > 0) totals.set(transaction.categoryId, (totals.get(transaction.categoryId) ?? 0) + value);
   }
   return categories
     .map((category) => ({
