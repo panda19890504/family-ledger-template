@@ -621,6 +621,10 @@ export function SettingsPage() {
                   <li>日期选择改为月历，可直接查看星期和整月日期。</li>
                   <li>有新版本时会显示红色提示，可手动更新到最新版。</li>
                 </ul>
+                <h3>修复</h3>
+                <ul>
+                  <li>分析图表提示改为点击或轻触后保持显示，修复鼠标移向关闭按钮时弹窗消失及手机上无法关闭的问题。</li>
+                </ul>
               </div>
               <div className="changelog-entry">
                 <p className="eyebrow">2026/08/23</p>
