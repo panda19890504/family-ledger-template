@@ -1,4 +1,5 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { DateSelectField } from "../components/DateFields";
 import { useLedger } from "../context/LedgerContext";
 import { todayIso } from "../lib/date";
 import {
@@ -424,7 +425,7 @@ export function SettingsPage() {
           <div className="section-title"><h2>可选折算汇率</h2><span>1 EUR = ? CNY</span></div>
           <p>CNY 原币统计不需要汇率。折算 EUR 会使用最新一条汇率作为报表汇率，不按每笔交易日期变化。</p>
           <form onSubmit={submitRate} className="inline-form">
-            <input type="date" value={rateDate} onChange={(event) => setRateDate(event.target.value)} required />
+            <DateSelectField label="生效日期" value={rateDate} onChange={setRateDate} />
             <input
               type="text"
               inputMode="decimal"
@@ -605,7 +606,7 @@ export function SettingsPage() {
           <div className="section-title">
             <div>
               <h2>更新日志</h2>
-              <span>最近更新：2026/08/23</span>
+              <span>最近更新：2026/09/25</span>
             </div>
             <button type="button" className="ghost-button" onClick={() => setShowChangelog((value) => !value)}>
               {showChangelog ? "收起" : "展开"}
@@ -613,6 +614,14 @@ export function SettingsPage() {
           </div>
           {showChangelog && (
             <>
+              <div className="changelog-entry">
+                <p className="eyebrow">2026/09/25</p>
+                <h3>更新</h3>
+                <ul>
+                  <li>日期选择改为月历，可直接查看星期和整月日期。</li>
+                  <li>有新版本时会显示红色提示，可手动更新到最新版。</li>
+                </ul>
+              </div>
               <div className="changelog-entry">
                 <p className="eyebrow">2026/08/23</p>
                 <h3>更新</h3>

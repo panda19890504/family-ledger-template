@@ -5,6 +5,7 @@ import { QuickEntryPage } from "./pages/QuickEntryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { currentMonth } from "./lib/date";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { applyPwaUpdate, hasPwaUpdate, subscribeToPwaUpdate } from "./lib/pwaUpdate";
 
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })),
@@ -22,6 +23,8 @@ const navItems: Array<{ id: Page; label: string; icon: string }> = [
 export default function App() {
   const [page, setPage] = useState<Page>("entry");
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [updateAvailable, setUpdateAvailable] = useState(hasPwaUpdate);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
   const {
     loading,
     busy,
@@ -48,6 +51,14 @@ export default function App() {
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => document.removeEventListener("visibilitychange", refreshWhenVisible);
   }, [mode, refreshLedger]);
+
+  useEffect(() => subscribeToPwaUpdate(() => setUpdateAvailable(true)), []);
+
+  function updateApp() {
+    setApplyingUpdate(true);
+    void applyPwaUpdate().catch(() => setApplyingUpdate(false));
+    window.setTimeout(() => setApplyingUpdate(false), 10000);
+  }
 
   if (loading) return <main className="center-screen">正在打开家庭账本…</main>;
   if (mode === "supabase" && households.length > 1 && !householdId) {
@@ -106,11 +117,19 @@ export default function App() {
       </aside>
 
       <main className="content">
-        {mode === "supabase" && (
-          <button className="sync-button" onClick={() => void refreshLedger()} disabled={busy}>
-            {busy ? "同步中" : "同步"}
-          </button>
-        )}
+        <div className="top-actions">
+          {updateAvailable && (
+            <button className="update-button" onClick={updateApp} disabled={applyingUpdate}>
+              <span className="update-dot" aria-hidden="true" />
+              {applyingUpdate ? "正在更新" : "有新版本"}
+            </button>
+          )}
+          {mode === "supabase" && (
+            <button className="sync-button" onClick={() => void refreshLedger()} disabled={busy}>
+              {busy ? "同步中" : "同步"}
+            </button>
+          )}
+        </div>
         {mode === "local" && (
           <div className="demo-banner"><strong>本机试用模式</strong><span>数据只保存在这个浏览器。配置 Supabase 后切换为跨设备家庭账本。</span></div>
         )}

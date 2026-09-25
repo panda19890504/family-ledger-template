@@ -6,7 +6,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
   plugins: [react(), VitePWA({
-    registerType: "autoUpdate",
+    registerType: "prompt",
     includeAssets: ["ledger-icon.svg"],
     manifest: {
       name: "家庭账本",
