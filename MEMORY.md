@@ -20,6 +20,7 @@ Record decisions that constrain future work. Include the date, decision, why it 
 | 2026-08-23 | Sync the reusable editing and analysis improvements from private main: modal editing, history-based detail suggestions, safe fixed-expense update scope, year-to-date summaries, comparison charts, and composition charts. | These features improve common bookkeeping and review workflows without depending on private data or credentials. | Template users get faster entry, clearer editing feedback, fewer duplicate fixed expenses, and richer annual analysis. |
 | 2026-08-23 | Keep the generic expense category `其他` inside public-template `家庭日常` analysis and use `转售` for resale wording. | The private household's exceptional-spending meaning for `其他` and its personal category labels are not universal. | Friends' uncategorized daily expenses remain visible in household totals, and public wording stays reusable. |
 | 2026-09-25 | Offer a calendar for specific dates and show a user-controlled PWA update action when a new build is ready. | Date selection should show weekdays; automatic reload can interrupt an unfinished entry. | Users can select dates faster and choose a safe moment to refresh on every device. |
+| 2026-09-25 | Analysis chart details stay open after click or tap until dismissed or another value is chosen. | A hover-only tooltip vanished as the pointer approached its close button, while cancelled touch events prevented closing on phones. | Desktop and phone users can inspect values and reliably dismiss the detail card. |
 
 ## Known Pitfalls
 

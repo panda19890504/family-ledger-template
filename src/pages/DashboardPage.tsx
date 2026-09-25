@@ -187,7 +187,6 @@ function ChartTooltip({ active, label, payload, hiddenKey, title, formatValue, o
     ))
     : [];
   const stopTooltipEvent = (event: SyntheticEvent) => {
-    event.preventDefault();
     event.stopPropagation();
   };
   return (
@@ -582,7 +581,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
             <div className="empty-chart">本月有支出后，这里会显示分类占比。</div>
           ) : (
             <ResponsiveContainer className="category-chart-container" width="100%" height={categoryChartHeight}>
-              <BarChart data={categoryChartData} layout="vertical" margin={categoryChartMargin}>
+              <BarChart data={categoryChartData} layout="vertical" margin={categoryChartMargin} onClick={() => setHiddenTooltipKey(null)}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8e3d8" />
                 <XAxis
                   type="number"
@@ -603,6 +602,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
                   tickLine={false}
                 />
                 <Tooltip
+                  trigger="click"
                   cursor={{ fill: "rgba(30, 54, 47, 0.05)" }}
                   wrapperStyle={{ pointerEvents: "auto" }}
                   content={(
@@ -626,11 +626,12 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
         <section className="surface chart-card">
           <div className="section-title"><div><p className="eyebrow">全年走势</p><h2>每月收支结余</h2></div></div>
           <ResponsiveContainer width="100%" height={330}>
-            <LineChart data={trendData} margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
+            <LineChart data={trendData} margin={{ left: 4, right: 16, top: 4, bottom: 4 }} onClick={() => setHiddenTooltipKey(null)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e3d8" />
               <XAxis dataKey="month" interval={0} tick={chartTickStyle} />
               <YAxis tickFormatter={signedAxisMoney} width={68} allowDecimals={false} tick={chartTickStyle} />
               <Tooltip
+                trigger="click"
                 wrapperStyle={{ pointerEvents: "auto" }}
                 content={(
                   <ChartTooltip
@@ -674,7 +675,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
                 <div className="composition-chart">
                   <div className="composition-donut" aria-label="年度收入构成图">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart onClick={() => setHiddenTooltipKey(null)}>
                         <Pie
                           data={annualIncomeChartData}
                           dataKey="value"
@@ -688,6 +689,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
                           {annualIncomeChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
                         </Pie>
                         <Tooltip
+                          trigger="click"
                           wrapperStyle={{ pointerEvents: "auto" }}
                           content={(
                             <ChartTooltip
@@ -718,7 +720,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
                 <div className="composition-chart">
                   <div className="composition-donut" aria-label="年度支出构成图">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart onClick={() => setHiddenTooltipKey(null)}>
                         <Pie
                           data={annualExpenseChartData}
                           dataKey="value"
@@ -732,6 +734,7 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
                           {annualExpenseChartData.map((item) => <Cell key={item.name} fill={item.color} />)}
                         </Pie>
                         <Tooltip
+                          trigger="click"
                           wrapperStyle={{ pointerEvents: "auto" }}
                           content={(
                             <ChartTooltip
@@ -765,12 +768,13 @@ export function DashboardPage({ month, onMonthChange }: DashboardPageProps) {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={comparisonChartData} margin={{ left: 4, right: 16, top: 6, bottom: 4 }}>
+            <BarChart data={comparisonChartData} margin={{ left: 4, right: 16, top: 6, bottom: 4 }} onClick={() => setHiddenTooltipKey(null)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e3d8" />
               <XAxis dataKey="month" interval={0} tick={chartTickStyle} />
               <YAxis tickFormatter={signedAxisMoney} width={68} allowDecimals={false} tick={chartTickStyle} />
               <ReferenceLine y={0} stroke="#9a9387" strokeWidth={1.2} />
               <Tooltip
+                trigger="click"
                 wrapperStyle={{ pointerEvents: "auto" }}
                 content={(
                   <ChartTooltip
